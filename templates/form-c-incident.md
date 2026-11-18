@@ -76,14 +76,14 @@ python3 -m lab10.trace --suite Sx --ticket <ID> --seed 11
 Ba loại lỗi: **giới hạn của hệ thống** · **lỗi ngữ cảnh** · **lỗi chìm** (cả người dùng lẫn hệ thống đều không nhận ra; nguy hiểm nhất,
 người chịu hại thường là bên thứ ba). Định nghĩa đầy đủ và ví dụ: Phiếu B mục B2.
 
-**Tác hại của thẻ:** cho ai `____` · đo bằng gì `____` · bao nhiêu ở mốc base `____`
+**Tác hại của thẻ:** cho ai `LogiX (tiền), hãng (lỗi oan), khách (chờ duyệt)` · đo bằng gì `wrongful_refund_vnd, wrongful_carrier_faults, thời gian chờ lâu nhất, tổng hoàn tự động so với ngân sách 300.000đ` · bao nhiêu ở mốc base `hoàn sai 160.000đ · 27 lỗi hãng oan · pass_rate 0,8683 · pass_k 0,6829`
 
 ### Phần 1 · Ghi lỗi (bằng chứng là mã ticket@seed và dòng trace, không tả chung chung)
 
 | # | Lỗi: người ta thấy gì (dán dòng trace / sổ cái) | Ai gặp, ai chịu | Hệ trọng (thấp / cao) | Loại lỗi (giới hạn hệ thống / ngữ cảnh / chìm) |
 |---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
+| 1 | `S4-08@11` và `S4-08@55` (hỏng; seed 22, 33, 44 đạt): `04 llm_error 429 (policy_check, attempt 0)` → `05 llm_error ... attempt 1` → `06 llm_fallback {"mode": "fail_open"}` → `07 proposal {"basis": "fail_open", "do_fault": true}` → ghi lỗi hãng VNX dù tracking ghi `cause: MERCHANT_HANDOVER` (shop bàn giao muộn). Seed 22 chỉ lỗi 1 lần nên retry cứu được. | Khách không thấy gì sai (vẫn được hoàn đúng 24.000đ); hãng VNX chịu lỗi oan | cao | **lỗi chìm** |
+| 2 | `S4-07@11` (hàng vỡ): `01 llm_extract {"intent": "DAMAGED"}` → `02 result {"status": "escalated", "reason": "loại yêu cầu cần người xử lý: DAMAGED"}`. Ca này ĐÚNG thiết kế, nhưng phần lớn ticket đêm 11.11 là hàng vỡ/thất lạc nên dồn hết sang một người duyệt (6 ca/giờ); mốc prepared: 8 ca/ngày vào hàng chờ, chờ lâu nhất 24 phút. | Khách chờ, chị Hạnh (người duyệt) chịu tải | cao khi lượng ×3 | **giới hạn của hệ thống** (người duyệt là thành phần INCAPABLE) |
 | 3 | | | | |
 
 ### Phần 2 · Tìm nguồn (đánh dấu câu nào đúng với từng lỗi)
@@ -315,9 +315,11 @@ python3 -m lab10.grade --incident Sx
 
 | Nhánh fault tree | Nguyên nhân | Chỗ sửa (hàm + nhánh trong `guards.py`, hoặc khoá trong `operating_gates.json`) | Tầng (phát hiện / chặn / giới hạn thiệt hại / vận hành) | GIẢM khả năng hay NGĂN hẳn? Vì sao | Mã lần chạy sau khi sửa |
 |---|---|---|---|---|---|
-| [1] | | | | | |
-| [2] | | | | | |
-| [3] | | | | | |
+| [1] LLM 429 → `fail_open` | Khi `policy_check` lỗi 2 lần, agent hoàn phí ship không xét điều kiện và luôn đặt `do_fault = true` (`S4-08@11`, `@55`) | **Giữ** cổng vòng 1: `write_gate` / `issue_refund` (so `amount_vnd` với `H.entitlement_vnd` từ tracking DB) và `write_gate` / `file_carrier_fault` (`H.carrier_at_fault`: chỉ `CARRIER`, `FORCE_MAJEURE`) | chặn | **NGĂN** tác hại tiền và lỗi hãng: cổng tính lại từ DB, không cần LLM, nên LLM nghẽn cũng không lọt. Không ngăn được chuyện agent rơi vào `fail_open` → đo bằng monitor C8 | `R-S4-after-20261118-163724-8d779e` |
+| [2] Trần tiền lỏng hơn ngân sách ngày sale | `business.daily_refund_cap_vnd` = 1.600.000đ trong config, trong khi Finance chốt 300.000đ riêng ngày 11.11 (`ops_limits.daily_auto_refund_budget_vnd`). Mốc prepared hoàn tự động 292.000đ, chỉ còn cách ngân sách 8.000đ | `write_gate` / `issue_refund`: trần = `min(config, ctx.tools.ops_limits()["daily_auto_refund_budget_vnd"])`, vượt thì `Verdict.escalate` (có `approval_id` thì cho qua). Tự kiểm: 292k + 24k → escalate; 200k + 24k → allow | giới hạn thiệt hại | **NGĂN** hoàn TỰ ĐỘNG vượt ngân sách (phần vượt bắt buộc qua người), vì trần đọc thẳng từ con số Finance, không phụ thuộc bàn nhớ sửa config. Đổi lại phần vượt làm tăng hàng chờ → nhánh [3] | `R-S4-after-20261118-163724-8d779e` |
+| [3] Hàng vỡ/thất lạc dồn sang một người duyệt | Agent chuyển người mọi ca `DAMAGED`/`NOT_RECEIVED` (đúng thiết kế, `S4-07@11`); lượng ×3 sau 20h, 1 người × 6 ca/giờ | Không sửa bằng code. `config/operating_gates.json` mục `operations` (`reviewers_on_shift`, `review_capacity_per_hour`, `max_queue_wait_minutes`) và `business.pilot_scope`: phần của Vận hành / Kinh doanh (#15, #16) | vận hành | **GIẢM**: thêm người hay thu hẹp chỉ hạ khả năng ùn, lượng ticket thật vẫn có thể vượt dự báo | `R-S4-after-20261118-163724-8d779e` |
+
+*Ghi chú của Kỹ sư cổng 2 (Toàn):* hai đề xuất trong issue #14 được kiểm trên nhãn trước khi code và **không** làm: (a) chặn hoàn khi đơn trễ do shop: nhãn `S4-08` là `refunded 24.000đ, payer LOGIX`, nghĩa là khách vẫn được hoàn, chỉ có lỗi hãng là sai, nên chặn hoàn sẽ làm hỏng ca đang đúng (vi phạm luật "không làm hỏng cái đang đúng"); trường dữ liệu thật là `MERCHANT_HANDOVER`, không phải `MERCHANT_DELAY`. (b) chặn hoàn hàng vỡ trong `write_gate`: agent đã chuyển người ở bước `llm_extract`, không có lệnh ghi nào tới cổng, nên thêm nhánh này là code chết. Không phạt hãng khi shop giao muộn đã được Cổng 2 vòng 1 bảo đảm.
 
 ---
 
@@ -330,14 +332,14 @@ Thẻ S5 dùng mục này cho một con số kinh doanh: chi phí mỗi ticket t
 
 | | Chỉ số theo dõi mới của bàn |
 |---|---|
-| **Tên trong `MONITORS`** | |
-| **Bước / hành vi được đo** | |
-| **Thước đo** (một câu, có đơn vị) | |
-| **Dữ liệu** (trường nào của trial, không có nhãn) | |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | |
-| **Khung thời gian / ngưỡng báo động** | |
-| **Điểm mù** (chỉ số này KHÔNG thấy gì) | |
-| Giá trị trên bộ nền · trên thẻ (đọc mục `monitor` của report) | |
+| **Tên trong `MONITORS`** | `llm_fallback_rate` |
+| **Bước / hành vi được đo** | Bước `policy_check` / `extract` của agent: LLM không trả lời (429) và agent rơi về chế độ dự phòng (`fail_open`) |
+| **Thước đo** (một câu, có đơn vị) | Tỉ lệ ticket (0–1) trong một ngày vận hành có ít nhất một sự kiện `llm_fallback` |
+| **Dữ liệu** (trường nào của trial, không có nhãn) | `trial["events"]`, đếm event có `type == "llm_fallback"`; không dùng nhãn, chạy được trên production |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | `số trial có ≥ 1 llm_fallback / max(1, số trial)`; trial ngoài phạm vi pilot không có event nên tính là 0; danh sách rỗng → 0 |
+| **Khung thời gian / ngưỡng báo động** | Theo giờ trong ca. Bình thường 0 (bộ nền). VÀNG > 0,05: báo `Teams #pilot-gate1`, PIC kiểm hàng chờ. ĐỎ > 0,20 trong một giờ: tắt `issue_refund` tự động ở `config/switches.json` cho tới khi nhà cung cấp hồi phục |
+| **Điểm mù** (chỉ số này KHÔNG thấy gì) | Không thấy lỗi khi LLM **trả lời nhưng sai** (ví dụ tin số ngày khách khai, FM-03); không thấy hàng chờ người duyệt; ca lỗi 1 lần rồi retry thành công (`S4-08@22`) không bị đếm |
+| Giá trị trên bộ nền · trên thẻ (đọc mục `monitor` của report) | bộ nền 0,0 · S4 mốc base 0,1854 · S4 mốc after 0,2435 → `6 monitor ✅` sáng đèn (`R-S4-after-20261118-163724-8d779e`) |
 
 ---
 
