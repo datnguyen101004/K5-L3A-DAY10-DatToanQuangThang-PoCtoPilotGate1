@@ -1,13 +1,11 @@
 {
- "run_id": "R-S4-grade-20261118-165250-123c47",
+ "run_id": "R-S4-grade-20261118-172457-be7c42",
  "incident": "S4",
  "grader_version": "lab10-1.0",
- "code_hash": "123c47c0ac5febbd8c71f7d3671cb6c48767880235a97f33071596aa5c852836",
+ "code_hash": "be7c42a24928c0cf84a00fd97aa1db63c77c5502bece495220ed1be3959b6c97",
  "integrity": {
   "ok": false,
   "changed": [
-   "data/tickets.jsonl",
-   "data/world.json",
    "incidents/S1/card.json",
    "incidents/S1/card.md",
    "incidents/S1/tickets.jsonl",
@@ -20,10 +18,6 @@
    "incidents/S3/card.md",
    "incidents/S3/tickets.jsonl",
    "incidents/S3/world_patch.json",
-   "incidents/S4/card.json",
-   "incidents/S4/card.md",
-   "incidents/S4/tickets.jsonl",
-   "incidents/S4/world_patch.json",
    "incidents/S5/card.json",
    "incidents/S5/card.md",
    "incidents/S5/tickets.jsonl",
@@ -39,24 +33,7 @@
    "incidents/S8/card.json",
    "incidents/S8/card.md",
    "incidents/S8/tickets.jsonl",
-   "incidents/S8/world_patch.json",
-   "lab10/__init__.py",
-   "lab10/_gradectx.py",
-   "lab10/_noop_guards.py",
-   "lab10/agent.py",
-   "lab10/check_submission.py",
-   "lab10/checkpoint.py",
-   "lab10/criteria.py",
-   "lab10/eval.py",
-   "lab10/gate.py",
-   "lab10/grade.py",
-   "lab10/helpers.py",
-   "lab10/mock_llm.py",
-   "lab10/ops.py",
-   "lab10/tools.py",
-   "lab10/trace.py",
-   "lab10/world.py",
-   "tests/test_public.py"
+   "incidents/S8/world_patch.json"
   ],
   "manifest": "MANIFEST.json"
  },
@@ -70,8 +47,10 @@
  },
  "team": "K5-L3A-DAY10-DatToanQuangThang-PoCtoPilotGate1",
  "drawn_card": {
-  "recorded": {},
-  "status": "chưa ghi"
+  "recorded": {
+   "templates/form-c-incident.md": "S4"
+  },
+  "status": "khớp"
  },
  "checkpoint": {
   "ok": true,
@@ -187,7 +166,8 @@
     "violations": []
    },
    "monitors": {
-    "escalation_rate": 0.227273
+    "escalation_rate": 0.227273,
+    "llm_fallback_rate": 0.0
    },
    "by_segment": {
     "warehouse": [
@@ -423,7 +403,8 @@
     ]
    },
    "monitors": {
-    "escalation_rate": 0.365854
+    "escalation_rate": 0.365854,
+    "llm_fallback_rate": 0.185366
    },
    "by_segment": {
     "warehouse": [
@@ -606,7 +587,8 @@
     "violations": []
    },
    "monitors": {
-    "escalation_rate": 0.230769
+    "escalation_rate": 0.230769,
+    "llm_fallback_rate": 0.0
    },
    "by_segment": {
     "warehouse": [
@@ -763,7 +745,8 @@
     "violations": []
    },
    "monitors": {
-    "escalation_rate": 0.304348
+    "escalation_rate": 0.304348,
+    "llm_fallback_rate": 0.243478
    },
    "by_segment": {
     "warehouse": [
@@ -899,7 +882,7 @@
     "refund": {
      "auto_refund_day_max_vnd": 155000,
      "finance_daily_budget_vnd": 2000000,
-     "team_daily_cap_vnd": 1600000,
+     "team_daily_cap_vnd": 300000,
      "wrongful_refund_worst_day_vnd": 0
     },
     "segments": {
@@ -926,7 +909,8 @@
     "violations": []
    },
    "monitors": {
-    "escalation_rate": 0.230769
+    "escalation_rate": 0.230769,
+    "llm_fallback_rate": 0.0
    },
    "by_segment": {
     "warehouse": [
@@ -1062,7 +1046,7 @@
     "refund": {
      "auto_refund_day_max_vnd": 292000,
      "finance_daily_budget_vnd": 300000,
-     "team_daily_cap_vnd": 1600000,
+     "team_daily_cap_vnd": 300000,
      "wrongful_refund_worst_day_vnd": 0
     },
     "segments": {
@@ -1083,7 +1067,8 @@
     "violations": []
    },
    "monitors": {
-    "escalation_rate": 0.304348
+    "escalation_rate": 0.304348,
+    "llm_fallback_rate": 0.243478
    },
    "by_segment": {
     "warehouse": [
@@ -1181,9 +1166,9 @@
   }
  },
  "run_ids": {
-  "before": "R-S4-before-20261118-165250-123c47",
-  "prepared": "R-S4-prepared-20261118-165250-123c47",
-  "after": "R-S4-after-20261118-165250-123c47"
+  "before": "R-S4-before-20261118-172457-be7c42",
+  "prepared": "R-S4-prepared-20261118-172457-be7c42",
+  "after": "R-S4-after-20261118-172457-be7c42"
  },
  "visible": {
   "before_red": true,
@@ -1203,9 +1188,24 @@
   "prepared_newly_failed": []
  },
  "monitor": {
-  "ok": false,
-  "new": [],
-  "lit": [],
+  "ok": true,
+  "new": [
+   "llm_fallback_rate"
+  ],
+  "lit": [
+   {
+    "name": "llm_fallback_rate",
+    "stage": "before",
+    "base": 0.0,
+    "incident": 0.185366
+   },
+   {
+    "name": "llm_fallback_rate",
+    "stage": "after",
+    "base": 0.0,
+    "incident": 0.243478
+   }
+  ],
   "errors": []
  },
  "hidden": {
@@ -1227,10 +1227,10 @@
   "visible": true,
   "hidden": null,
   "regression": true,
-  "monitor": false
+  "monitor": true
  },
  "hard_gates_ok": false,
  "score": null,
  "verdict": "FAIL",
- "seconds": 0.594
+ "seconds": 0.409
 }
