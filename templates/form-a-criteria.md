@@ -26,8 +26,8 @@ Nguồn phạm vi và kiểm soát tiền: [PRD v1.1 §2–4](https://github.com
 
 ### Câu 1.2 · Mục tiêu nhìn từ hai người
 
-- Chị Oanh, kế toán đối soát (không dùng trợ lý, nhưng phải khớp sổ với hãng và shop mỗi tuần): Đảm bảo 100% giao dịch hoàn tiền có căn cứ chứng từ minh bạch trên sổ cái, không phát sinh sai lệch công nợ giữa LogiX, đối tác vận chuyển và chủ shop trong các kỳ đối soát hàng tuần.
-- Chị Hạnh, trưởng ca CSKH (phải duyệt những ca trợ lý chuyển sang): Tỷ lệ ca khiếu nại phải chuyển người duyệt (escalation) duy trì dưới 25% để không làm quá tải ca trực, đảm bảo thời gian xử lý các ca phức tạp không vượt quá 60 phút theo cam kết SLA.
+- Chị Oanh, kế toán đối soát (không dùng trợ lý, nhưng phải khớp sổ với hãng và shop mỗi tuần): Mỗi tuần, 100% lệnh hoàn tiền và phạt hãng do trợ lý tạo ra phải khớp với chứng từ hoàn tiền, chứng từ giao dịch của shop và tracking của hãng; số tiền hoàn sai, lỗi ghi oan cho hãng và lộ dữ liệu phải là 0 để không phát sinh lệch dòng tiền hoặc tranh chấp bồi thường.
+- Chị Hạnh, trưởng ca CSKH (phải duyệt những ca trợ lý chuyển sang): Duy trì tỉ lệ leo thang dưới 25% (mỗi ca có tối đa 1 người duyệt xử lý 6 ca/giờ) và đảm bảo mỗi ca leo thang được nhận xử lý trong tối đa 60 phút; cảnh báo khi hàng chờ chạm ngưỡng vàng và chuyển sang thu hẹp hoặc dừng khi hàng chờ chạm ngưỡng đỏ.
 
 ---
 
@@ -50,12 +50,12 @@ trợ lý có đang gây thiệt hại cho bên ngoài LogiX không; không có 
 
 | | Offline, cho MỘT bước (câu 1.3) | Telemetry production (câu 1.4) |
 |---|---|---|
-| **Bước / hành vi được đo** | Ghi lỗi hãng vận chuyển (`file_carrier_fault`) | Quyết định phạt lỗi đối tác giao nhận khi chạy thực tế |
-| **Thước đo** (một câu, có đơn vị) | Tỉ lệ quyết định ghi lỗi hãng sai lệch so với căn cứ thực tế trong DB tracking (False Strike Rate, đơn vị: %) | Tỉ lệ đối tác vận chuyển khiếu nại quyết định phạt lỗi trong vòng 48h (Dispute Rate per Auto-action, đơn vị: %) |
-| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | Sự kiện `file_carrier_fault` trong trace (`runs/<mã>/traces/`) đối chiếu với trường `parcels[].delay_cause` trong `data/world.json` trên 22 ticket × 5 seed. Nhãn do đội QA & pháp lý chuẩn hoá | Số lượng ticket khiếu nại ngược nhận từ cổng kết nối bưu chính/hãng chia cho tổng số đơn agent ghi lỗi trong ngày (Portal CSKH đối tác) |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | `(Số lần gọi file_carrier_fault khi delay_cause không thuộc fault_causes) / (Tổng số lần gọi file_carrier_fault) * 100%`. Nếu không gọi lần nào: 0% | `(Số đơn hãng khiếu nại phạt oan trong ca) / (Tổng số đơn agent ghi lỗi hãng trong ca) * 100%`. Ca không có đơn ghi lỗi: ghi nhận 0% |
-| **Khung thời gian / ngưỡng báo động** | (không áp dụng) | Theo ca làm việc (8 giờ). Ngưỡng báo động: > 1% hoặc có từ 2 hãng khiếu nại trong cùng ca |
-| **Điểm mù** (thước đo này KHÔNG thấy gì) | Không phát hiện được trường hợp hãng thực sự gây trễ nhưng nhân viên kho/tài xế quên không cập nhật nguyên nhân vào hệ thống tracking | Phản hồi từ hãng có độ trễ (thường mất 24–48h để hãng rà soát), không cảnh báo được lỗi phạt oan ngay tại thời điểm agent thực thi |
+| **Bước / hành vi được đo** | Ghi lỗi hãng vận chuyển (`file_carrier_fault`) | Hành động ghi sau đề xuất của trợ lý: hoàn tiền (`issue_refund`) và ghi/phạt lỗi cho hãng (`file_carrier_fault`) |
+| **Thước đo** (một câu, có đơn vị) | Tỉ lệ quyết định ghi lỗi hãng sai lệch so với căn cứ thực tế trong DB tracking (False Strike Rate, đơn vị: %) | Tỉ lệ hành động tự động hoàn tiền hoặc ghi/phạt hãng bị hãng đối tác khiếu nại (Dispute Rate, đơn vị %), cùng số hãng có tranh chấp độc lập trong cùng ca |
+| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | Sự kiện `file_carrier_fault` trong trace (`runs/<mã>/traces/`) đối chiếu với trường `parcels[].delay_cause` trong `data/world.json` trên 22 ticket × 5 seed. Nhãn do đội QA & pháp lý chuẩn hoá | Portal kết nối CSKH đối tác và sổ khiếu nại hãng: mã ticket, mã hãng, loại hành động (`issue_refund`, `file_carrier_fault`), thời điểm hành động, trạng thái tranh chấp. Kết quả tranh chấp do hãng đối tác xác nhận và CSKH đối chiếu |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | `(Số lần gọi file_carrier_fault khi delay_cause không thuộc fault_causes) / (Tổng số lần gọi file_carrier_fault) * 100%`. Nếu không gọi lần nào: 0% | Số hành động tự động bị xác nhận tranh chấp trong ca chia cho tổng hành động tự động cùng loại trong ca, nhân 100. Ca thiếu dữ liệu phản hồi không coi là ca đạt mà được đánh dấu "không xác nhận đủ"; hai hãng hoặc nhiều hơn cùng phát sinh tranh chấp trong cùng ca được đếm riêng |
+| **Khung thời gian / ngưỡng báo động** | (không áp dụng) | Theo ca 8 giờ và tổng hợp cuối ngày; báo động vàng khi dispute rate vượt 0,5%; báo động đỏ khi dispute rate vượt 1% hoặc có từ 2 hãng khiếu nại cùng lúc |
+| **Điểm mù** (thước đo này KHÔNG thấy gì) | Không phát hiện được trường hợp hãng thực sự gây trễ nhưng nhân viên kho/tài xế quên không cập nhật nguyên nhân vào hệ thống tracking | Không phát hiện ngay thiệt hại do phản hồi tranh chấp có độ trễ 24–48 giờ; không đo được tranh chấp khách hàng/chủ shop chưa gửi tới hãng hoặc lỗi chưa được ghi nhận trong portal |
 
 ---
 
@@ -92,30 +92,26 @@ Giải thích một câu: Khoảng tin cậy 95% của bản X là [0,9400; 1,0]
 
 Đây không phải ngưỡng chất lượng. Viết hai câu trên phiếu này thôi, không chép vào `acceptance_criteria.json`.
 
-- Một đầu ra hoặc hành động bị cấm (ví dụ không bao giờ hoàn quá X đồng): Cấm trợ lý ghi khoản hoàn làm tổng tiền đã chi cho một đơn vượt 200.000đ trong quy trình pilot.
-- Ngưỡng chuyển cho người duyệt: Chuyển người trước khi ghi nếu số tiền đề xuất vượt hạn mức tự động của chính sách đang hiệu lực (200.000đ với v3, 100.000đ với v4), vượt trần sản phẩm hoặc thiếu dữ kiện/phê duyệt cần thiết.
+- Một đầu ra hoặc hành động bị cấm (ví dụ không bao giờ hoàn quá X đồng): Cấm trợ lý ghi khoản hoàn làm tổng tiền đã chi cho một đơn vượt 200.000đ trong quy trình pilot; không được tự hoàn vượt ngân sách Finance còn lại trong ngày; không được ghi lỗi hãng khi thiếu nguyên nhân ghi nhận trong tracking; không được gửi `phone`, `name` hoặc `street` sang hãng đối tác.
+- Ngưỡng chuyển cho người duyệt: Chuyển cho `NV-HANH` khi số tiền đề xuất làm tổng hoàn tự động trong ngày vượt trần, người dùng khai số ngày trễ khác tracking, thiếu bằng chứng nguyên nhân lỗi hãng, ticket nằm ngoài phạm vi pilot hoặc hàng chờ vượt 30 phút.
 
 #### Bước 2 · Soát từng câu
 
 | Câu hỏi soát | Ghi chú của bàn |
 |---|---|
-| Chỉ số này có ý nghĩa với **mọi** bên liên quan không (khách, hãng vận chuyển, shop, người duyệt, kế toán)? | Khách cần đúng tiền và được xử lý đúng hạn. Hãng và shop cần tránh lỗi oan, lộ thông tin và ghi sai bên chịu tiền. Người duyệt cần hàng chờ trong SLA. Kế toán cần số tiền khớp sổ cái. |
-| Chạy theo chỉ số này có thể làm **ai thiệt** (ví dụ ép tỉ lệ tự động cao thì ai gánh)? | Ép tỷ lệ chuyển người xuống có thể khiến khách đủ điều kiện bị từ chối hoặc hãng chịu lỗi oan. Chuyển người quá nhiều lại dồn việc cho CSKH. Đọc cả ca hợp lệ, thời gian chờ và phân khúc bên cạnh tỷ lệ chung. |
-| Đây có phải nghĩa của "thành công" ở **ngày 1** của pilot không? | Ngày 1 cần giữ các trần an toàn, đủ người duyệt và kênh đối soát hoạt động. Mục tiêu giảm thao tác thủ công được kiểm lại bằng dữ liệu pilot. |
-| Còn ở **ngày thứ 1.000** (12 depot, chính sách đã đổi vài lần)? Ngưỡng nào sẽ phải viết lại? | Giữ 0 cho ba chỉ số an toàn. Đề xuất đánh giá lại ngân sách mỗi ticket, ROI và tải người duyệt theo dữ liệu từng kho/ca. Cập nhật bộ kiểm khi phiên bản chính sách đổi để kiểm đúng quyền lợi hiện hành. |
+| Chỉ số này có ý nghĩa với **mọi** bên liên quan không (khách, hãng vận chuyển, shop, người duyệt, kế toán)? | Có. Khách quan tâm nhận đúng tiền và trả lời đúng hạn; shop/chính hãng quan tâm số hoàn và ghi lỗi; kế toán cần sổ khớp; người duyệt cần tải và SLA khả thi; pháp lý cần PII an toàn |
+| Chạy theo chỉ số này có thể làm **ai thiệt** (ví dụ ép tỉ lệ tự động cao thì ai gánh)? | Ép tỉ lệ tự động cao có thể làm hàng chờ người duyệt tăng, nhân viên mệt; ngược lại thu hẹp quá sâu có thể làm khách chờ lâu. Hoàn sai làm shop/khách mất tiền hoặc hãng bị ghi oan; lộ PII làm khách chịu rủi ro pháp lý |
+| Đây có phải nghĩa của "thành công" ở **ngày 1** của pilot không? | Ngày 1: không phát sinh hoàn sai, ghi oan hay PII; hàng chờ vẫn dưới 60 phút; mỗi ca có người duyệt theo công suất 6 ca/giờ và toàn bộ thao tác ghi có audit trail |
+| Còn ở **ngày thứ 1.000** (12 depot, chính sách đã đổi vài lần)? Ngưỡng nào sẽ phải viết lại? | Ngày 1.000: cần rà lại công suất theo số depot/tải thực tế, trần hoàn theo mức doanh thu, SLA theo mùa sale và danh sách trường PII theo chính sách; thời gian chờ 60 phút, công suất 6 ca/giờ/người và danh sách PII nên được xem lại định kỳ |
 
 #### Bước 3 · Chốt và hẹn ngày xem lại
 
 - Bản cuối của từng câu → chép **ngưỡng** vào `required` / `nice_to_have` / `business_ops`, chép **hành động** vào `decision_rule`
   (bốn dòng: Tiếp tục, Thu hẹp, Cải tiến thêm, Dừng) và `stop_condition`. Các khoá này nằm ngay trong `config/acceptance_criteria.json`.
+- Đề xuất điều kiện dừng cho vai Vận hành và Pháp lý: dừng cổng hoàn khi phát sinh hoàn sai vượt ngưỡng; dừng ghi lỗi hãng khi có ít nhất một lỗi ghi oan đã xác nhận; dừng/thu hẹp pilot khi hàng chờ người duyệt vượt 60 phút; dừng gửi dữ liệu khi phát hiện PII bị gửi ra ngoài trường cho phép.
 - Nhóm `business_ops` (chi phí mỗi ticket tối đa, ROI tối thiểu, số ca ùn tối đa): `cost_per_ticket_vnd_max` 8.000đ · `roi_min` 0,25 · `queue_stuck_max` 0. Nếu chi phí vượt 8.000đ, ROI dưới 0,25 hoặc có ca ùn, chúng tôi sẽ Thu hẹp nếu xác định được phạm vi gây vấn đề và an toàn đạt, hoặc Cải tiến thêm trước khi mở.
 - Căn cứ ngưỡng: PRD Lab 9 ghi sàn `pass_rate` 85% và `pass_hat_5` 80%. 98% và 95% là ngưỡng pilot Lab 10 đề xuất theo issue #3. Mức 8.000đ thấp hơn 2.000đ so với làm tay. ROI 0,25 nghĩa là 1đ chi vận hành tạo ít nhất 0,25đ tiết kiệm ròng theo công thức report. Số ca ùn bằng 0 nghĩa là không có ca chờ quá 60 phút hoặc hết ca vẫn chưa tới lượt.
-- Ngày xem lại tiêu chí: `__________` · Ai dự: `__________` (ghi vào Phiếu B mục B8, dòng "Ngày quyết định lại").
-
-**Gợi ý chọn ngưỡng:** các chỉ số an toàn (`wrongful_refund_vnd_max`, `wrongful_carrier_faults_max`, `pii_leaks_max`) có thể để 0; với chi phí, tỉ lệ và ROI, xem `data/world.json` mục `ops_facts`.
-
-**Ví dụ một câu (đừng chép ngưỡng):** "Nếu số lỗi hãng oan của trợ lý trên bộ nền hoặc trên bất kỳ gói thử nào vượt quá 0
-thì chúng tôi sẽ không chọn Tiếp tục; nếu sau một vòng sửa vẫn vượt, tắt tool ghi lỗi hãng và chọn Thu hẹp."
+- Ngày xem lại tiêu chí: `2026-11-25` · Ai dự: `Cả 4 thành viên (Đạt, Toàn, Quang, Thắng)` (ghi vào Phiếu B mục B8, dòng "Ngày quyết định lại").
 
 ---
 
@@ -125,6 +121,6 @@ thì chúng tôi sẽ không chọn Tiếp tục; nếu sau một vòng sửa v�
 
 | Mục | Điền |
 |---|---|
-| Đã ký lúc (giờ máy in hoặc `signed_at` trong `config/acceptance_criteria.lock`) | 2026-11-18T15:35:05 |
-| Mã commit `Sign acceptance criteria` (7 ký tự đầu, `git log --oneline -1`) | `a30ff28` |
-| Đã push lên `origin main` thành công? | có |
+| Đã ký lúc (giờ máy in hoặc `signed_at` trong `config/acceptance_criteria.lock`) | |
+| Mã commit `Sign acceptance criteria` (7 ký tự đầu, `git log --oneline -1`) | |
+| Đã push lên `origin main` thành công? | chưa |
