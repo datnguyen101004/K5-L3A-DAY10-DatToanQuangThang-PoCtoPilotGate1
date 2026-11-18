@@ -9,14 +9,15 @@
   "operations": {
     "pic": "NV-TUNG",
     "approver_id": "NV-HANH",
-    "reviewers_on_shift": 1,
-    "review_capacity_per_hour": 6,
+    "reviewers_on_shift": 2,
+    "review_capacity_per_hour": 12,
     "max_queue_wait_minutes": 60,
     "stop_conditions": [
       "Dừng hoàn tự động khi phát sinh hoàn sai vượt ngưỡng đã ký",
       "Dừng ghi lỗi hãng khi phát hiện ít nhất một lỗi ghi oan đã xác nhận",
       "Dừng hoặc thu hẹp pilot khi thời gian chờ người duyệt vượt 60 phút",
-      "Dừng gửi dữ liệu bên thứ ba khi phát hiện PII bị gửi ngoài danh sách cho phép"
+      "Dừng gửi dữ liệu bên thứ ba khi phát hiện PII bị gửi ngoài danh sách cho phép",
+      "Ngày sale 11.11: dừng hoàn tự động khi tổng hoàn chạm 300.000đ theo hạn mức Finance"
     ],
     "alert_channel": "Teams #pilot-gate1",
     "decision_note": true,
