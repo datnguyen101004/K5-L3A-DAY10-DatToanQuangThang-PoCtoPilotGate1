@@ -210,7 +210,7 @@ Trạng thái: **Xong** (có bằng chứng) · **Chưa** · **Không áp dụng
 | 6 | Chi phí | Khối "kinh doanh và vận hành" của report; `config/operating_gates.json` mục `business` | Chi phí ticket, ROI, tiền LLM và trần hoàn trong ngày đạt ngưỡng đã ký | Xong | `R-base-prepared-20261118-161903-f565b2`: cost 5.550đ (trần 8.000đ), ROI 0,8 (sàn 0,25), LLM cao nhất 770đ (trần 1.500đ), hoàn tự động 155.000đ (trần bàn 1.600.000đ); không vượt trần | Nguyễn Tuấn Quang |
 | 7 | Vận hành | Runbook (Phiếu B mục B7.5–B7.6) + mục `operations` + metric trong `monitors.py` | PIC, người duyệt, công suất, SLA, điều kiện dừng và kênh báo tin; report xác nhận tải chấp nhận được | Xong | `R-base-prepared-20261118-161903-f565b2`: 4 ca/ngày vào hàng chờ; 1 người duyệt 6 ca/giờ; chờ TB/lâu nhất 0 phút; 0 ca ùn; escalation_rate 0,2308 | Thắng |
 | 8 | Con người, pháp lý | Bên thứ ba, mục `legal`, thẻ S6/S7/S8 có mục riêng ở Phiếu C mục C3 | Chặn PII trong payload thật, ghi lỗi hãng có căn cứ, lưu bằng chứng/khiếu nại | Chưa | `carrier_fault_requires_recorded_cause=true`; nhánh PII của ticket gift chưa được kiểm riêng sau cổng, `customer_note` chưa được chứng minh đã loại | Thắng |
-| 9 | Quyết định | Câu tiêu chí (Phiếu A mục A4) + hash Bản tiêu chí đã ký + quyết định Gate 1 (B8/C12) | Quyết định v1/v2 có bằng chứng và khớp đúng dòng `decision_rule` | Chưa | Tiêu chí đã verify: hash `c77b02d2`, ký commit `36413f8`; B8 chưa có quyết định v1 và PIC ký | Phạm Nguyễn Tất Đạt |
+| 9 | Quyết định | Câu tiêu chí (Phiếu A mục A4) + hash Bản tiêu chí đã ký + quyết định Gate 1 (B8/C12) | Quyết định v1/v2 có bằng chứng và khớp đúng dòng `decision_rule` | Xong | Tiêu chí đã verify: hash `c77b02d2`, ký commit `36413f8`; v1 = Tiếp tục HN/HCM, v2 = Tiếp tục sau S4; PIC vận hành xác nhận | Phạm Nguyễn Tất Đạt |
 
 Ô "Chưa" có rủi ro cao → chuyển thành một dòng Risk register (Phiếu C mục C10).
 
@@ -391,6 +391,8 @@ Lượng ticket có thể dồn gấp ba trong một giờ (ngày sale, sau bão
 | Ngưỡng nào thì **thu hẹp** phạm vi (khoá `business.pilot_scope`) hoặc **tắt** một thao tác ghi (`config/switches.json`)? Ai quyết? | Thu hẹp/tắt khi hàng chờ vượt 60 phút, hoàn sai/PII/ghi oan phát sinh, hoặc tải làm vượt trần tài chính. `NV-TUNG` bấm công tắc; `NV-HANH` duyệt cao điểm và `NV-OANH` xác nhận tranh chấp bên ngoài |
 | Thêm người thì chi phí mỗi ticket và ROI thay đổi thế nào (đọc report)? | Mỗi người trực thêm tốn 30.000đ/ca giữ chỗ. Chi phí ticket phải so với `manual_cost_per_ticket_vnd=10.000đ`; nếu chi phí vượt làm tay hoặc ROI không đạt, không thêm người mà thu hẹp theo kho/tỷ lệ |
 
+**Cập nhật sau thẻ S4 (vòng 2):** S4 cho thấy 14 ca/giờ có thể tới trong đợt dồn; một người xử lý 6 ca/giờ không đủ và report mốc base ghi chờ lâu nhất 78 phút, 4 ca ùn. Ngày sale bố trí 2 người duyệt (NV-HANH và 1 người dự phòng CSKH do NV-TUNG gọi từ roster trực), công suất cấu hình 12 ca/giờ. Gọi người dự phòng ngay khi ca chờ chạm 30 phút; nếu chờ vượt 60 phút thì thu hẹp phạm vi hoặc tắt thao tác ghi liên quan. Không tự điền tên dự phòng vì roster nhân sự mock không cung cấp người thứ hai; NV-TUNG phải ghi tên người nhận ca khi bàn giao.
+
 ---
 
 <a id="b8"></a>
@@ -420,17 +422,17 @@ bao nhiêu thời gian? (3) Có phần nào của dự án không nên làm ti�
 | Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | Không có dòng `[VƯỢT]`: `lab10.gate` xác nhận mọi ngưỡng đã ký đạt; queue_stuck 0, cost 5.550đ (≤8.000đ), ROI 0,8 (≥0,25), refund 155.000đ (≤1.600.000đ), hoàn sai/lỗi hãng/PII đều 0. |
 | Thẩm định vận hành của Trưởng ca CSKH | 4 ca/ngày vào hàng chờ; 1 người (`NV-HANH`) duyệt tối đa 6 ca/giờ; chờ trung bình 0 phút, lâu nhất 0 phút, 0 ca ùn so với SLA 60 phút. Tỉ lệ escalation 0,2308 ≤0,25; tỉ lệ chuyển người tổng 0,3077 gồm cả 10% kiểm mẫu. Công suất và SLA đạt ở mốc prepared. |
 | Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Đọc khối "theo kho và hãng" ở cuối output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | Kho `?` (5 trials) có cost 10.359đ/ticket >10.000đ làm tay; HN 2.079đ và HCM 3.447đ, đều không có lỗi an toàn. Cần xác minh `?` có nằm trong phạm vi HN/HCM không; nếu có thì đổi sang Thu hẹp/loại phân khúc này, nếu ngoài phạm vi hiện tại thì giữ HN/HCM và không mở rộng sang `?`. |
-| Quyết định (khoanh một) | Tiếp tục · Thu hẹp · Cải tiến thêm · Dừng |
+| Quyết định (khoanh một) | **Tiếp tục** · Thu hẹp · Cải tiến thêm · Dừng |
 | Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `R-base-prepared-20261118-161903-f565b2` · pass_rate 1,0 [CI95% 1,0–1,0], pass_k 1,0; wrongful_refund 0đ, wrongful_carrier_faults 0, pii_leaks 0 · đều đạt ngưỡng đã ký |
 | Bằng chứng 2: hàng chờ và công suất duyệt | `R-base-prepared-20261118-161903-f565b2` · 4 ca/ngày vào hàng chờ; 1 người × 6 ca/giờ · chờ lâu nhất 0 phút, queue_stuck 0 · đạt SLA 60 phút |
 | Bằng chứng 3: chi phí, ROI hoặc pháp lý | `R-base-prepared-20261118-161903-f565b2` · cost 5.550đ ≤8.000đ; ROI 0,8 ≥0,25; hoàn tự động 155.000đ ≤1.600.000đ; escalation_rate 0,2308 ≤0,25; lỗi hãng/PII 0 · đạt các ngưỡng report |
-| Khớp dòng nào trong `decision_rule` đã ký? | Chờ cả bàn chọn quyết định. Nếu chọn Tiếp tục, phải khớp dòng: "Mọi ngưỡng bắt buộc và kinh doanh/vận hành đạt, không vượt trần và còn độ phủ pilot. Ở v1, xét bộ nền mốc prepared." |
+| Khớp dòng nào trong `decision_rule` đã ký? | Khớp dòng `Tiếp tục`: mọi ngưỡng bắt buộc và kinh doanh/vận hành đạt, không vượt trần và còn độ phủ pilot HN/HCM ở bộ nền mốc prepared. |
 | Nếu Thu hẹp: cắt phần nào, vì sao | Phạm vi cắt cụ thể (kho, tỷ lệ hoặc loại ticket): ____ · Tỷ lệ cắt: ____ · Lý do gắn với vượt trần hoặc SLA: ____ |
 | Nếu Cải tiến thêm: giả thuyết cụ thể + hạn | Giả thuyết: ____ · Biện pháp sửa: ____ · Hạn hoàn thành: ____ · Tiêu chí xem lại: ____ |
 | Nếu Dừng: bài học ghi lại | Rủi ro chính đã xác nhận: ____ · Dòng tiêu chí bị vượt: ____ · Thao tác đã tắt: ____ · Biện pháp xử lý khi đã dừng: ____ |
 | Một bằng chứng còn thiếu (thứ bộ nền chưa đo được) | Chưa có số tác vụ thủ công CSKH thực hiện trên cùng một nhóm ca trước và trong pilot để kiểm mục tiêu giảm 70%, gồm cả duyệt và kiểm lại; thiếu dữ liệu production thực tế như phản hồi hãng 24–48 giờ, tranh chấp thực tế ngoài 22 ticket × 5 seed |
 | Ngày quyết định lại (trừ khi Dừng) | 2026-11-25 · Người theo dõi: `NV-TUNG` hoặc người được bàn ghi nhận |
-| PIC ký | Lê Thanh Tùng (`NV-TUNG`) · Trạng thái ký: chờ PIC và cả bàn xác nhận quyết định v1 · Giờ ký: ____ |
+| PIC ký | Lê Thanh Tùng (`NV-TUNG`) · Trạng thái ký: xác nhận quyết định v1 Tiếp tục · Giờ ký: 2026-11-18 |
 
 Xong v1 thì lưu và đẩy một bản (sau mốc này không sửa cột v1):
 

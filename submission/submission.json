@@ -1,12 +1,17 @@
 {
-  "team": "",
-  "members": [],
-  "incident": "",
-  "decision_v1": "",
-  "decision_v2": "",
+  "team": "K5-L3A-DAY10-DatToanQuangThang-PoCtoPilotGate1",
+  "members": [
+    "PhamNguyenTatDat-2A202603401",
+    "NguyenNgocToan-2A202603405",
+    "NguyenTuanQuang-2A202603392",
+    "KieuVanThang-2A202603424"
+  ],
+  "incident": "S4",
+  "decision_v1": "Tiếp tục",
+  "decision_v2": "Tiếp tục",
   "three_lines": {
-    "environment_assumption": "",
-    "reduce_or_prevent": "",
-    "measure_in_pilot": ""
+    "environment_assumption": "Thiết kế giả định ticket đến đều và một reviewer giữ được SLA 60 phút; S4 có thể dồn 14 ca/giờ, gây chờ 78 phút.",
+    "reduce_or_prevent": "Write-gate theo tracking ngăn lỗi đã thử; staffing chỉ giảm ùn, còn phụ thuộc roster dự phòng và monitor fallback.",
+    "measure_in_pilot": "Theo giờ đo queue, fallback LLM, tổng hoàn so với 300.000đ, tải CSKH và tranh chấp hãng/shop sau 24–48 giờ."
   }
 }

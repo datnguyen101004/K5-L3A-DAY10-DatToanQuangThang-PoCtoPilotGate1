@@ -16,7 +16,7 @@ Họ tên đầy đủ và MSSV của **mọi** thành viên; thêm dòng nếu 
 |   1 | Phạm Nguyễn Tất Đạt | 2A202603401 | Kỹ sư cổng | Có |
 |   2 | Nguyễn Ngọc Toàn | 2A202603405 | Kỹ sư cổng | Không |
 |   3 | Nguyễn Tuấn Quang | 2A202603392 | Sản phẩm và kinh doanh | Không |
-|   4 | Thắng | | Vận hành và pháp lý | Không |
+|   4 | Kiều Văn Thắng |2A202603424 | Vận hành và pháp lý | Không |
 
 Ghi `members` trong `submission/submission.json` theo dạng `"HoVaTen-MSSV"`, khớp bảng trên.
 
@@ -53,3 +53,33 @@ Phụ trách:
 
 - Một điều học được: Thấu hiểu tầm quan trọng của việc "ký tiêu chí trước khi nhìn kết quả đo" để loại bỏ hoàn toàn thiên kiến xác nhận (confirmation bias), và việc dựng cổng kiểm soát cấp hệ thống (system-level guards) nằm ngoài model prompt là lá chắn tin cậy nhất để ngăn chặn hallucination.
 - Một điều còn chưa chắc: Khi đưa vào môi trường production tải cao với nhiều trường hợp đơn phức tạp (giao nhiều chặng, đổi địa chỉ giữa chừng), cơ chế đồng bộ giữa tracking DB và sổ cái đối soát có thể gặp độ trễ dẫn đến phán đoán sai lệch.
+
+## KieuVanThang-2A202603424
+
+### Phần việc phụ trách
+
+Vai: Chuyên viên Vận hành và Pháp lý.
+
+Phụ trách:
+- Khối 1: Mục tiêu hai nhân sự cốt lõi, telemetry production, điều kiện dừng và ranh giới an toàn.
+- Khối 2: HAZOP, checklist 9 nhóm việc, pre-mortem, cổng vận hành/pháp lý, Runbook 1–3 và giờ cao điểm.
+- Khối 3: Thẻ S4, HAZOP mở rộng, giả định môi trường, điều chỉnh staffing và stop conditions, Risk register, Runbook 4–5 và hoàn tất submission.
+
+### Đóng góp cụ thể
+
+- Xác lập PIC, approver và công suất duyệt cho ca thường và ca sale.
+- Thêm cơ chế hai người duyệt trong cấu hình vòng 2; giữ SLA chờ 60 phút và ngưỡng gọi hỗ trợ khi chờ đạt 30 phút.
+- Thêm điều kiện dừng khi tổng hoàn ngày sale chạm 300.000đ, đồng thời giữ nguyên trần/lock vòng 1.
+- Hoàn thiện phần riêng S4 trong Phiếu C, fault tree vận hành/pháp lý, risk register và runbook phục hồi/nâng cấp.
+
+### Bằng chứng
+
+- `R-S4-before-20261118-165250-123c47`, `R-S4-prepared-20261118-165250-123c47`, `R-S4-after-20261118-165250-123c47`
+- `R-S4-grade-20261118-165250-123c47`
+- Mục C1, C3, C4, C5, C7, C9, C10, C11 và C12 trong `templates/form-c-incident.md`
+- Cấu hình `operations` và `legal` trong `config/operating_gates.json`
+
+### Exit ticket
+
+- Một điều học được: tải cao làm người duyệt trở thành bộ phận chặn ngang với model/tool; staffing, SLA và thủ tục dừng phải được đo và duy trì cùng cổng kỹ thuật.
+- Một điều còn chưa chắc: người dự phòng có thực sự sẵn sàng trong ca sale và phản hồi tranh chấp hãng/shop sau 24–48 giờ production chưa được mô phỏng đầy đủ.
