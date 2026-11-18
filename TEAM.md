@@ -108,20 +108,32 @@ Vai: Kỹ sư cổng 2 (Gate & QA Engineer). Issue #2 (vòng 1) và #14 (vòng 2
 - Một điều học được: cổng tính lại từ nguồn sự thật (tracking DB) giữ được an toàn ngay cả khi model hỏng hẳn (`fail_open` lúc LLM nghẽn), nên cần đặt phòng vệ ngoài model chứ không dựa vào prompt; và phải đối chiếu nhãn trước khi code, vì một đề xuất nghe hợp lý vẫn có thể làm hỏng ca đang đúng.
 - Một điều còn chưa chắc: `llm_fallback_rate` không thấy lỗi khi LLM trả lời nhưng trả lời sai, và trần ngân sách đẩy phần vượt sang người duyệt; với lượng ticket thật lớn hơn mock, chưa rõ hàng chờ có còn trong hạn 60 phút không.
 
-## HoVaTen-MSSV
+## KieuVanThang-2A202603424
 
 ### Phần việc phụ trách
 
-Vai trong bàn; câu nào của đề, mục nào của phiếu A/B/C, file nào (`lab10/guards.py`, `config/operating_gates.json`, …).
+Vai: Chuyên viên Vận hành và Pháp lý.
+
+Phụ trách:
+- Khối 1: Mục tiêu hai nhân sự cốt lõi, telemetry production, điều kiện dừng và ranh giới an toàn.
+- Khối 2: HAZOP, checklist 9 nhóm việc, pre-mortem, cổng vận hành/pháp lý, Runbook 1–3 và giờ cao điểm.
+- Khối 3: Thẻ S4, HAZOP mở rộng, giả định môi trường, điều chỉnh staffing và stop conditions, Risk register, Runbook 4–5 và hoàn tất submission.
 
 ### Đóng góp cụ thể
 
-...
+- Xác lập PIC, approver và công suất duyệt cho ca thường và ca sale.
+- Thêm cơ chế hai người duyệt trong cấu hình vòng 2; giữ SLA chờ 60 phút và ngưỡng gọi hỗ trợ khi chờ đạt 30 phút.
+- Thêm điều kiện dừng khi tổng hoàn ngày sale chạm 300.000đ, đồng thời giữ nguyên trần/lock vòng 1.
+- Hoàn thiện phần riêng S4 trong Phiếu C, fault tree vận hành/pháp lý, risk register và runbook phục hồi/nâng cấp.
 
 ### Bằng chứng
 
-Mã commit, mã lần chạy (`runs/<mã>`), dòng trong phiếu.
+- `R-S4-before-20261118-165250-123c47`, `R-S4-prepared-20261118-165250-123c47`, `R-S4-after-20261118-165250-123c47`
+- `R-S4-grade-20261118-165250-123c47`
+- Mục C1, C3, C4, C5, C7, C9, C10, C11 và C12 trong `templates/form-c-incident.md`
+- Cấu hình `operations` và `legal` trong `config/operating_gates.json`
 
 ### Exit ticket
 
-Một điều học được, một điều còn chưa chắc.
+- Một điều học được: tải cao làm người duyệt trở thành bộ phận chặn ngang với model/tool; staffing, SLA và thủ tục dừng phải được đo và duy trì cùng cổng kỹ thuật.
+- Một điều còn chưa chắc: người dự phòng có thực sự sẵn sàng trong ca sale và phản hồi tranh chấp hãng/shop sau 24–48 giờ production chưa được mô phỏng đầy đủ.
