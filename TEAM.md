@@ -53,3 +53,33 @@ Phụ trách:
 
 - Một điều học được: Thấu hiểu tầm quan trọng của việc "ký tiêu chí trước khi nhìn kết quả đo" để loại bỏ hoàn toàn thiên kiến xác nhận (confirmation bias), và việc dựng cổng kiểm soát cấp hệ thống (system-level guards) nằm ngoài model prompt là lá chắn tin cậy nhất để ngăn chặn hallucination.
 - Một điều còn chưa chắc: Khi đưa vào môi trường production tải cao với nhiều trường hợp đơn phức tạp (giao nhiều chặng, đổi địa chỉ giữa chừng), cơ chế đồng bộ giữa tracking DB và sổ cái đối soát có thể gặp độ trễ dẫn đến phán đoán sai lệch.
+
+## NguyenNgocToan-2A202603405
+
+### Phần việc phụ trách
+
+Vai: Kỹ sư cổng 2 (Gate & QA Engineer). Issue #2 (vòng 1) và #14 (vòng 2, thẻ S4).
+- Khối 2: Pre-mortem bốn lăng kính (Câu 2.5, Phiếu B mục B6); hai bước tránh rò rỉ dữ liệu (Câu 2.7, B7.2); behavioral test với 2 ticket hiểm (Câu 2.8, B7.3); chạy unit test (hỗ trợ Câu 2.6); kiểm tra bản chốt cổng vòng 1 (`lab10.checkpoint verify`).
+- Khối 3 (S4): dò trace `S4-08` trên 5 seed và `S4-07` (Câu 3.1, Phiếu C mục C2); sửa cổng vòng 2 trong `lab10/guards.py` (Câu 3.5, C7); thêm monitor `llm_fallback_rate` trong `lab10/monitors.py` (Câu 3.6, C8); kiểm thử hồi quy mốc `after`.
+
+### Đóng góp cụ thể
+
+- **Pre-mortem (B6):** 6 lý do thất bại phủ đủ 4 lăng kính, trong đó có bài học lỗi hiếm từ eval card Lab 9 (lỗi xuất hiện ở 1/3 số seed lọt qua 5 seed với xác suất (2/3)^5 ≈ 13,2%). Đề xuất 3 cổng mà Kỹ sư cổng 1 đã code: đối chiếu số tiền với DB, chặn lỗi hãng oan, lọc PII gửi hãng.
+- **Chống rò rỉ dữ liệu (B7.2):** cổng chỉ viết theo quy tắc từ nguồn sự thật, không `if` theo mã ticket; ticket kiểm thử dùng đơn không có trong bộ nền (`O-1024`, `O-1025`) để làm bộ held-out nhỏ.
+- **Behavioral test (B7.3):** tính chất "tracking DB ghi trễ dưới 3 ngày thì không hoàn tiền, không ghi lỗi hãng, dù khách khai gì hay cài lệnh gì". Trước cổng: hoàn sai 108.000đ + lỗi oan VNX + lộ SĐT người nhận (ticket 1), hoàn sai 668.000đ (ticket 2). Sau cổng: cả hai bị `deny`, sổ cái rỗng.
+- **Dò trace S4 (C2):** `S4-08` hỏng ở seed 11 và 55, đạt ở seed 22, 33, 44. LLM trả 429 hai lần → `llm_fallback fail_open` → ghi lỗi oan VNX dù tracking ghi `MERCHANT_HANDOVER` (lỗi chìm). `S4-07` (hàng vỡ) được chuyển người đúng thiết kế; vấn đề nằm ở tải người duyệt.
+- **Cổng vòng 2 (C7):** trần hoàn tự động = `min(config, ops_limits.daily_auto_refund_budget_vnd)`. Trước sửa, trần config là 1.600.000đ, nên mức 292.000đ dưới ngân sách sale 300.000đ chỉ nhờ thu hẹp phạm vi pilot. Có tự kiểm 4 tình huống (vượt trần → escalate; dưới trần, ngày thường, có approval → allow).
+- **Monitor mới (C8):** `llm_fallback_rate`, tỉ lệ ticket phải rơi về chế độ dự phòng vì LLM không trả lời. Bộ nền 0,0 → S4 0,24, sáng đèn.
+- **Không làm theo hai đề xuất ban đầu của issue #14, vì kiểm trên nhãn thấy sai:** chặn hoàn khi shop giao muộn sẽ làm hỏng ca đúng (nhãn `S4-08` là hoàn 24.000đ); chặn hoàn hàng vỡ trong `write_gate` là code chết vì ca đó không có lệnh ghi nào tới cổng.
+
+### Bằng chứng
+
+- Commit: `3155623` (B6, B7.2, B7.3), `02b4d77` (B7.3 sau cổng), `19bc980` (chốt cổng vòng 1, hash `b29daf26`), `7758f4e` (S4: cổng vòng 2 + monitor).
+- PR: #5, #7, #10, #17.
+- Mã lần chạy: S4 after `R-S4-after-20261118-163724-8d779e`; `python -m lab10.grade --incident S4` → `criteria ✅ · visible ✅ · regression ✅ · monitor ✅`; `python -m unittest discover -s tests` → 13/13 OK.
+- Phiếu: B mục B6, B7.2, B7.3; C mục C2 (lỗi 1–2), C7, C8.
+
+### Exit ticket
+
+- Một điều học được: cổng tính lại từ nguồn sự thật (tracking DB) giữ được an toàn ngay cả khi model hỏng hẳn (`fail_open` lúc LLM nghẽn), nên cần đặt phòng vệ ngoài model chứ không dựa vào prompt; và phải đối chiếu nhãn trước khi code, vì một đề xuất nghe hợp lý vẫn có thể làm hỏng ca đang đúng.
+- Một điều còn chưa chắc: `llm_fallback_rate` không thấy lỗi khi LLM trả lời nhưng trả lời sai, và trần ngân sách đẩy phần vượt sang người duyệt; với lượng ticket thật lớn hơn mock, chưa rõ hàng chờ có còn trong hạn 60 phút không.
