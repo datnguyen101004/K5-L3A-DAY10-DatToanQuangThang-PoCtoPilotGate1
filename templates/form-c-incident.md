@@ -1,6 +1,6 @@
 # Phiếu C · Sự cố và quyết định v2 · Khối 3 (phút 125–200)
 
-**Bàn:** ______ · **Thẻ đã bốc:** ___ *(để trống tới phút 125; bốc số xong thì ghi đúng số đó, ví dụ `S3`. Lab Coach đối chiếu với sổ; lệnh tự kiểm tra in dòng này trong report.)*
+**Bàn:** DatToanQuangThang · **Thẻ đã bốc:** S4
 
 Mở `incidents/Sx/card.md` của đúng số đã bốc. Các bước trên thẻ trỏ về đúng mục trong phiếu này. Mục C3 chỉ điền phần ứng với
 số thẻ của bàn; các phần khác để trống.
@@ -31,7 +31,7 @@ Mỗi lệnh `lab10.eval` và `lab10.grade` tự ghi một dòng vào `runs/jour
 | # | Mã lần chạy | Bộ ticket · mốc | Đổi MỘT thứ gì so với lần trước | pass_rate (khoảng tin cậy 95%) | pass_k | Hoàn sai (đ) · lỗi hãng oan · lộ dữ liệu | Tỉ lệ chuyển người | Kết luận (một câu) |
 |---|---|---|---|---|---|---|---|---|
 | 1 | | Sx · prepared | nhận thẻ đã bốc, chưa sửa thêm (đúng cổng vòng 1 đã chốt) | | | | | |
-| 2 | | Sx · after | | | | | | |
+| 2 | `R-S4-after-20261118-163844-b84489` | S4 · after | Hạ trần hoàn tự động từ 1.600.000đ xuống 300.000đ. | 1,00 [1,00; 1,00] | 1,00 | 0đ · 0 · 0 | 30,43% | Hoàn tự động cao nhất 292.000đ/ngày giả lập, thấp hơn trần mới 8.000đ. |
 | 3 | | Sx · after | | | | | | |
 | 4 | | base · after | (kiểm không regression) | | | | | |
 
@@ -249,9 +249,15 @@ Bắt buộc: ít nhất ba dòng, trong đó **một dòng là nhánh bàn chư
 
 ### Câu 3.2 · Một specification mà nếu bị vi phạm thì gây ra tác hại trên thẻ
 
-Kiểm được bằng code hoặc bằng một con số trong report: …
+Kiểm được bằng code hoặc bằng một con số trong report:
 
-Kiểm bằng gì (hàm trong `guards.py`, dòng report nào): …
+1. Nếu tracking của kiện ghi `delay_cause=MERCHANT_HANDOVER` (shop bàn giao muộn), trợ lý phải chuyển yêu cầu hoàn cho người duyệt trước khi ghi tiền và không được tự ghi lỗi hãng, khấu trừ shop hay hãng. Khoản hoàn cho khách theo chính sách thuộc quy trình duyệt thủ công và cần giữ đúng bên chịu tiền.
+2. Trong ngày sale 11.11, tổng hoàn **tự động** đã ghi vào sổ cái cộng khoản tự động đang đề nghị phải ≤ **300.000đ**. Nếu khoản đề nghị làm vượt trần thì chuyển người duyệt trước khi ghi.
+
+Kiểm bằng gì (hàm trong `guards.py`, dòng report nào):
+
+- Với nguyên nhân shop bàn giao muộn, đối chiếu nguyên nhân của đúng kiện trong `incidents/S4/world_patch.json` với `ledger`, `fault_rows` và trace cổng ghi của từng trial. Tiêu chí kiểm là 0 khoản hoàn tự động, 0 lỗi hãng và 0 khoản khấu trừ tự động đối với nguyên nhân này. Nhãn S4 chấp nhận hoàn phí theo chính sách hoặc chuyển người ở các ca này. Chỉ số tổng `wrongful_refund_vnd` vì thế không đủ để kiểm riêng yêu cầu chuyển người. Ở lần chạy sau khi đổi trần, **40/40 lượt thuộc 8 ticket trong phạm vi** vẫn có hoàn tự động và 0 lượt ghi lỗi hãng. Nhóm cần thống nhất cách xử lý nhánh hoàn tiền với kỹ sư cổng.
+- Với trần ngày, kiểm tại `WriteTools.issue_refund` trước khi ghi sổ cái. Trong report, so `ops.refund.auto_refund_day_max_vnd` với `ops.refund.finance_daily_budget_vnd` và xác nhận `ops.refund.team_daily_cap_vnd` là 300.000đ.
 
 ### Câu 3.3 · Một giả định về môi trường mà người thiết kế đã ngầm tin, nhưng nhiều khả năng sai ngoài thực tế
 
@@ -318,6 +324,17 @@ python3 -m lab10.grade --incident Sx
 | [1] | | | | | |
 | [2] | | | | | |
 | [3] | | | | | |
+
+**Nhánh kinh doanh · Ngân sách hoàn tự động ngày sale.** Cổng vòng 1 đặt 1.600.000đ/ngày, cao hơn trần 300.000đ của Finance trong `incidents/S4/world_patch.json`. Hạ `business.daily_refund_cap_vnd` xuống **300.000đ** trong config vòng 2. Đây là cổng giới hạn thiệt hại: cổng ghi ngăn khoản tự động làm vượt trần trên sổ cái mô phỏng và chuyển ca đó cho người duyệt. Giữ ngân sách tiền máy **1.200đ/ticket**, phạm vi **HN/HCM** và ROI tối thiểu **0,25** để kiểm riêng tác động của trần.
+
+**Kết quả kinh doanh** · `R-S4-after-20261118-163844-b84489`
+
+| Chỉ số | Kết quả và cách đọc |
+|---|---|
+| Tổng hoàn tự động cao nhất trong một ngày giả lập | **292.000đ / 300.000đ**, còn 8.000đ đến trần. Cùng số với `prepared`, nên lần chạy này xác nhận mức chi nằm trong trần mới. Bài kiểm thử công khai kiểm hành vi chuyển người khi một khoản đề nghị vượt trần. |
+| Chi phí và ROI | **5.231đ/ticket** so với **10.000đ** làm tay và ngưỡng đã ký **8.000đ**. Tiết kiệm ròng **109.697đ/ngày giả lập**, ROI **0,91 ≥ 0,25**. Chi phí tiền máy cao nhất **971đ/ticket**. |
+| Độ phủ và hàng chờ | **23/41 ticket (56,1%)** vào pilot, 18 ticket tiếp tục làm tay. Hàng chờ có trung bình 8 ca/ngày kể cả kiểm lại, chờ lâu nhất **24 phút**, **0 ca ùn**. Tỷ lệ trợ lý chuyển người **30,43%** vượt mức nên có 25%, cần đối chiếu công suất nếu đổi quy trình duyệt. |
+| Theo kho và hãng | **HN** 12 ticket, **4.347đ/ticket** và tỷ lệ vào hàng duyệt **41,67%**. **HCM** 11 ticket, **3.468đ/ticket** và **27,27%**. Cả hai kho thấp hơn mức làm tay, đạt 100% trong mẫu và ghi nhận 0đ hoàn sai, 0 lỗi hãng oan, 0 lần lộ PII. HN đắt hơn và cần ưu tiên theo dõi tải duyệt. Các hãng trong phạm vi đồng mức theo các chỉ số an toàn. |
 
 ---
 
@@ -418,16 +435,16 @@ Cột v1 nằm ở Phiếu B mục B8; không sửa cột đó.
 
 | | **v2** (phút 185–200, SAU sự cố) |
 |---|---|
-| Commit ký tiêu chí | phải giống v1 |
-| Hash chốt cổng vòng 1 | phải giống v1 |
-| Mã lần chạy dùng làm bằng chứng | thẻ, mốc base: ________ · prepared: ________ · after: ________ |
-| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | |
-| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Khối "theo kho và hãng" trong output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | |
-| Quyết định (khoanh một) | Tiếp tục · Thu hẹp · Cải tiến thêm · Dừng |
-| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | |
-| Bằng chứng 2 | |
-| Bằng chứng 3 | |
-| Khớp dòng nào trong `decision_rule` đã ký? | |
+| Commit ký tiêu chí | `36413f8`, theo B8 |
+| Hash chốt cổng vòng 1 | `b29daf26`, theo B8 |
+| Mã lần chạy dùng làm bằng chứng | S4 base: `R-S4-before-20261118-163845-b84489` · prepared: `R-S4-prepared-20261118-163845-b84489` · after: `R-S4-after-20261118-163846-b84489`. Cập nhật từ report cuối sau khi tích hợp phần kỹ thuật và vận hành. |
+| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | Danh sách trần và ngưỡng bắt buộc ở `after` đều rỗng trên S4 và bộ nền. Trên S4, tỷ lệ trợ lý chuyển người 30,43% vượt mức nên có 25%, cần theo dõi riêng cùng số ca kiểm lại. |
+| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Khối "theo kho và hãng" trong output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | HN có chi phí cao hơn (4.347đ so với 3.468đ tại HCM) và tỷ lệ vào hàng duyệt cao hơn (41,67% so với 27,27%). Chi phí HN vẫn dưới mức làm tay 10.000đ và các chỉ số an toàn đều đạt trong mẫu. Số liệu này chưa cho thấy cần loại HN riêng. |
+| Quyết định (khoanh một) | **Chờ cả nhóm chốt** sau lần chạy trên bản tích hợp. |
+| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `R-S4-after-20261118-163846-b84489`: 115/115 trial trong phạm vi đạt. `pass_rate=1,00`, `pass_k=1,00`, hoàn sai 0đ, lỗi hãng oan 0, lộ PII 0. Kiểm riêng đặc tả C5 vẫn còn 40 lượt shop giao muộn được hoàn tự động. |
+| Bằng chứng 2 | Cùng mã `after`: tổng hoàn tự động cao nhất 292.000đ ≤ 300.000đ. Chi phí 5.231đ/ticket ≤ 8.000đ, tiết kiệm ròng 109.697đ/ngày giả lập, ROI 0,91 ≥ 0,25. |
+| Bằng chứng 3 | Cùng mã `after`: 23/41 ticket (56,1%) trong phạm vi, chờ tối đa 24/60 phút, 0 ca ùn. Có trung bình 8 ca vào hàng duyệt mỗi ngày giả lập, gồm cả kiểm lại. |
+| Khớp dòng nào trong `decision_rule` đã ký? | **Chờ cả nhóm chốt.** Đối chiếu dòng quyết định với report cuối của cả bộ nền và S4. |
 | Nếu Thu hẹp: cắt kho nào / còn bao nhiêu phần trăm / mấy người trực, và ticket bị cắt đi đâu | |
 | Nếu Cải tiến thêm: giả thuyết cụ thể (nhánh nào của fault tree) + hạn | |
 | Nếu Dừng: bài học ghi lại | |
@@ -435,13 +452,13 @@ Cột v1 nằm ở Phiếu B mục B8; không sửa cột đó.
 | PIC ký | |
 
 **Chỉ ở v2**
-- Quyết định đổi hay giữ so với v1? Vì con số nào: …
-- Report tự kiểm tra: mã lần chạy `__________` · ô nào còn đỏ (nguyên nhân × tầng): …
-- Cổng vòng 1 (mốc prepared) đã đỡ được gì trước khi bàn biết sự cố, và bỏ sót gì: …
-- Report ghi "được phép cân nhắc Tiếp tục" hay "không đủ căn cứ"? Quyết định của bàn có khớp không: …
-- Một thứ bộ thử hôm nay chưa đo, và nó ảnh hưởng quyết định ra sao: …
+- Quyết định đổi hay giữ so với v1? V1 chọn Tiếp tục. Dữ liệu S4 ủng hộ việc giữ phạm vi HN/HCM về mặt chi phí và SLA trong mô phỏng. S4 còn 40 lượt vi phạm yêu cầu chuyển duyệt riêng ở C5, và tỷ lệ chuyển người 30,43% cao hơn mức nên có 25%. Giữ hay đổi quyết định chờ nhóm đọc report tích hợp và thống nhất cách xử lý các ca shop giao muộn.
+- Report tự kiểm tra `R-S4-grade-20261118-163845-b84489`. `visible` và `regression` đạt. `integrity` báo thiếu 28 file gói thẻ khác trong checkout, `criteria` và bản chốt lệch hash do xuống dòng, `monitor` chưa đạt vì chưa có chỉ số mới. Chưa có test ẩn để đối chiếu bảng nguyên nhân × tầng.
+- Mốc `prepared` đã giảm tiền hoàn sai từ 160.000đ về 0đ, lỗi hãng oan từ 27 về 0, tiền hoàn tự động cao nhất từ 466.000đ xuống 292.000đ và hàng chờ dài nhất từ 78 xuống 24 phút. Độ phủ đồng thời giảm từ 41 xuống 23 ticket/ngày. Trần cấu hình vòng 1 vẫn là 1.600.000đ và các ca shop bàn giao muộn vẫn có thể được hoàn tự động.
+- Phần ngưỡng của report ghi **được phép cân nhắc Tiếp tục** vì không còn vượt trần hay trượt ngưỡng bắt buộc. Kết quả tự kiểm tra tổng vẫn là **FAIL**. Nhóm đối chiếu lại sau khi tích hợp và xác minh đặc tả C5.
+- Bộ thử chưa đo tải duyệt theo từng giờ của ca sale thật. Số chờ tối đa 24 phút trong mô phỏng chỉ đủ để đưa phạm vi HN/HCM ra thảo luận.
 
 **Ba dòng bắt buộc** (chép nguyên ba câu này sang `submission/submission.json`, mục `three_lines`)
-1. Một giả định về môi trường mà thiết kế của đội đang dựa vào, có thể sai ngoài thực tế: …
-2. Gate của đội chỉ GIẢM khả năng hay thực sự NGĂN được tác hại? Vì sao: …
-3. Vì data là mock, cần đo lại gì trong pilot thật trước Bước đánh giá 2: …
+1. Thiết kế đang dựa vào việc lưu lượng ticket và độ sẵn sàng của LLM tương đối ổn định, trong khi ngày flash sale có thể dồn lượng việc gấp ba sau 20h và API trả lỗi 429 đúng lúc người duyệt đang quá tải.
+2. Trần 300.000đ ngăn một khoản hoàn tự động làm vượt ngân sách được ghi vào sổ cái mô phỏng vì cổng kiểm trước khi ghi, còn bố trí ca trực chỉ giảm nguy cơ ùn ứ vì số ca đến mỗi giờ và thời gian duyệt vẫn có thể tăng.
+3. Trước Gate 2, cần đo tỷ lệ tranh chấp của shop và hãng trong 48–72 giờ kể từ quyết định, số ca đến và công suất duyệt mỗi giờ, cùng thời gian chờ p95 và số ca vượt SLA 60 phút ở mỗi kho trong flash sale.
