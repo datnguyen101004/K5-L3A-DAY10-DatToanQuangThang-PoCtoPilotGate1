@@ -43,7 +43,11 @@ def write_gate(ctx, action):
                                                   amount_vnd=entitlement)
 
         # Kiểm tra trần hoàn tiền tự động trong ngày từ config operating_gates
-        cap = (ctx.gates or {}).get("business", {}).get("daily_refund_cap_vnd")
+        # Vòng 2 (S4): lấy trần chặt hơn giữa config bàn và ngân sách Finance trong ops_limits (ngày sale 11.11 = 300.000đ)
+        caps = [(ctx.gates or {}).get("business", {}).get("daily_refund_cap_vnd"),
+                ctx.tools.ops_limits().get("daily_auto_refund_budget_vnd")]
+        caps = [c for c in caps if c is not None]
+        cap = min(caps) if caps else None
         if cap is not None and not action.get("approval_id"):
             spent = ctx.tools.auto_refund_today_vnd()
             if spent + action.get("amount_vnd", 0) > cap:
