@@ -5,7 +5,7 @@
 - Tên nhóm (`TenNhom`, không dấu, không khoảng trắng): DatToanQuangThang
 - Lớp: `L3A`
 - Repo của bàn: `K5-L3A-DAY10-DatToanQuangThang-PoCtoPilotGate1`
-- Thẻ sự cố đã bốc (S1–S8):
+- Thẻ sự cố đã bốc (S1–S8): S4
 
 ## Thành viên
 
@@ -16,7 +16,7 @@ Họ tên đầy đủ và MSSV của **mọi** thành viên; thêm dòng nếu 
 |   1 | Phạm Nguyễn Tất Đạt | 2A202603401 | Kỹ sư cổng | Có |
 |   2 | Nguyễn Ngọc Toàn | 2A202603405 | Kỹ sư cổng | Không |
 |   3 | Nguyễn Tuấn Quang | 2A202603392 | Sản phẩm và kinh doanh | Không |
-|   4 | Thắng | | Vận hành và pháp lý | Không |
+|   4 | Kiều Văn Thắng | 2A202603424 | Vận hành và pháp lý | Không |
 
 Ghi `members` trong `submission/submission.json` theo dạng `"HoVaTen-MSSV"`, khớp bảng trên.
 
@@ -83,3 +83,21 @@ Vai: Kỹ sư cổng 2 (Gate & QA Engineer). Issue #2 (vòng 1) và #14 (vòng 2
 
 - Một điều học được: cổng tính lại từ nguồn sự thật (tracking DB) giữ được an toàn ngay cả khi model hỏng hẳn (`fail_open` lúc LLM nghẽn), nên cần đặt phòng vệ ngoài model chứ không dựa vào prompt; và phải đối chiếu nhãn trước khi code, vì một đề xuất nghe hợp lý vẫn có thể làm hỏng ca đang đúng.
 - Một điều còn chưa chắc: `llm_fallback_rate` không thấy lỗi khi LLM trả lời nhưng trả lời sai, và trần ngân sách đẩy phần vượt sang người duyệt; với lượng ticket thật lớn hơn mock, chưa rõ hàng chờ có còn trong hạn 60 phút không.
+
+## HoVaTen-MSSV
+
+### Phần việc phụ trách
+
+Vai trong bàn; câu nào của đề, mục nào của phiếu A/B/C, file nào (`lab10/guards.py`, `config/operating_gates.json`, …).
+
+### Đóng góp cụ thể
+
+...
+
+### Bằng chứng
+
+Mã commit, mã lần chạy (`runs/<mã>`), dòng trong phiếu.
+
+### Exit ticket
+
+Một điều học được, một điều còn chưa chắc.
