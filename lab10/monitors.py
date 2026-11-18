@@ -19,7 +19,17 @@ def escalation_rate(trials):
     return sum(t["status"] == "escalated" for t in trials) / max(1, len(trials))
 
 
+def llm_fallback_rate(trials):
+    """Tỉ lệ ticket mà agent phải rơi về chế độ dự phòng vì LLM không trả lời (429 / nghẽn).
+
+    Sáng đèn khi nhà cung cấp LLM suy giảm (S4: giờ cao điểm 11.11): đây là lúc agent tự 'fail_open',
+    nên người trực cần biết trước khi tiền và lỗi hãng bị ghi."""
+    hit = sum(any(e.get("type") == "llm_fallback" for e in t["events"]) for t in trials)
+    return hit / max(1, len(trials))
+
+
 MONITORS = {
     "escalation_rate": escalation_rate,     # có sẵn; KHÔNG tính là metric mới của đội
+    "llm_fallback_rate": llm_fallback_rate,
 }
 STARTER_MONITORS = ("escalation_rate",)

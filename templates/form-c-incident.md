@@ -321,7 +321,9 @@ python3 -m lab10.grade --incident Sx
 |---|---|---|---|---|---|
 | [1] | LLM gặp lỗi 429 quá tải kích hoạt `fail_open` tự ý phạt hãng dù lỗi do shop xuất kho muộn | `lab10/guards.py` hàm `write_gate` khi `tool == "file_carrier_fault"`: kiểm tra `H.carrier_at_fault()` và `legal.carrier_fault_requires_recorded_cause` | Chặn | **NGĂN HẲN**. Cổng kiểm tra độc lập với model, chặn thẳng lệnh ghi vào sổ lỗi hãng nếu tracking không có nguyên nhân lỗi hãng | `R-S4-after-20261118-163543-f565b2` |
 | [2] | Ticket dồn dập sau 20h (14 ca/h), 1 người trực không xuể khiến hàng chờ kéo dài 78 phút (> SLA 60p) | `config/operating_gates.json` mục `operations.max_queue_wait_minutes=60`, cảnh báo ngưỡng vàng 30p, và thu hẹp `business.pilot_scope` kho HN, HCM | Vận hành / Giới hạn thiệt hại | **GIẢM KHẢ NĂNG**. Khoanh vùng pilot giúp giảm tải leo thang từ 15 xuống 8 ca, đưa hàng chờ max về 24 phút; nếu tải tăng đột biến vẫn cần gọi thêm người | `R-S4-after-20261118-163543-f565b2` |
-| [3] | Tổng hoàn tự động vượt trần ngân sách 300.000đ của Finance quy định riêng cho ngày sale 11.11 | `config/operating_gates.json` mục `business` kiểm soát phạm vi và `write_gate` chặn hoàn tiền vượt hạn mức | Giới hạn thiệt hại | **NGĂN HẲN**. Tổng hoàn tự động thực tế khống chế ở mức 292.000đ (≤ trần 300.000đ), các khoản vượt ngân sách bị đẩy sang người duyệt | `R-S4-after-20261118-163543-f565b2` |
+| [3] | Tổng hoàn tự động vượt trần ngân sách 300.000đ của Finance quy định riêng cho ngày sale 11.11 | `lab10/guards.py` hàm `write_gate` khi `tool == "issue_refund"`: trần = `min(business.daily_refund_cap_vnd, ctx.tools.ops_limits()["daily_auto_refund_budget_vnd"])`, vượt thì `Verdict.escalate` (có `approval_id` thì cho qua). Trước sửa, trần config là 1.600.000đ nên 292.000đ dưới 300.000đ chỉ nhờ thu hẹp `business.pilot_scope`, không có cổng nào giữ. Tự kiểm: đã hoàn 292k + 24k → escalate; 200k + 24k → allow | Giới hạn thiệt hại | **NGĂN HẲN** hoàn TỰ ĐỘNG vượt ngân sách: trần đọc thẳng từ con số Finance, không phụ thuộc bàn nhớ sửa config; phần vượt bắt buộc qua người duyệt (đổi lại tăng tải hàng chờ, xem [2]) | `R-S4-after-20261118-163724-8d779e` |
+
+*Ghi chú của Kỹ sư cổng 2 (Toàn):* hai đề xuất trong issue #14 được kiểm trên nhãn trước khi code và **không** làm: (a) chặn hoàn khi đơn trễ do shop: nhãn `S4-08` là `refunded 24.000đ, payer LOGIX`, nghĩa là khách vẫn được hoàn, chỉ có lỗi hãng là sai, nên chặn hoàn sẽ làm hỏng ca đang đúng (vi phạm luật "không làm hỏng cái đang đúng"); trường dữ liệu thật là `MERCHANT_HANDOVER`, không phải `MERCHANT_DELAY`. (b) chặn hoàn hàng vỡ trong `write_gate`: agent đã chuyển người ở bước `llm_extract`, không có lệnh ghi nào tới cổng, nên thêm nhánh này là code chết. Không phạt hãng khi shop giao muộn đã được Cổng 2 vòng 1 bảo đảm.
 
 ---
 
@@ -334,14 +336,14 @@ Thẻ S5 dùng mục này cho một con số kinh doanh: chi phí mỗi ticket t
 
 | | Chỉ số theo dõi mới của bàn |
 |---|---|
-| **Tên trong `MONITORS`** | |
-| **Bước / hành vi được đo** | |
-| **Thước đo** (một câu, có đơn vị) | |
-| **Dữ liệu** (trường nào của trial, không có nhãn) | |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | |
-| **Khung thời gian / ngưỡng báo động** | |
-| **Điểm mù** (chỉ số này KHÔNG thấy gì) | |
-| Giá trị trên bộ nền · trên thẻ (đọc mục `monitor` của report) | |
+| **Tên trong `MONITORS`** | `llm_fallback_rate` |
+| **Bước / hành vi được đo** | Bước `policy_check` / `extract` của agent: LLM không trả lời (429) và agent rơi về chế độ dự phòng (`fail_open`) |
+| **Thước đo** (một câu, có đơn vị) | Tỉ lệ ticket (0–1) trong một ngày vận hành có ít nhất một sự kiện `llm_fallback` |
+| **Dữ liệu** (trường nào của trial, không có nhãn) | `trial["events"]`, đếm event có `type == "llm_fallback"`; không dùng nhãn, chạy được trên production |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | `số trial có ≥ 1 llm_fallback / max(1, số trial)`; trial ngoài phạm vi pilot không có event nên tính là 0; danh sách rỗng → 0 |
+| **Khung thời gian / ngưỡng báo động** | Theo giờ trong ca. Bình thường 0 (bộ nền). VÀNG > 0,05: báo `Teams #pilot-gate1`, PIC kiểm hàng chờ. ĐỎ > 0,20 trong một giờ: tắt `issue_refund` tự động ở `config/switches.json` cho tới khi nhà cung cấp hồi phục |
+| **Điểm mù** (chỉ số này KHÔNG thấy gì) | Không thấy lỗi khi LLM **trả lời nhưng sai** (ví dụ tin số ngày khách khai, FM-03); không thấy hàng chờ người duyệt; ca lỗi 1 lần rồi retry thành công (`S4-08@22`) không bị đếm |
+| Giá trị trên bộ nền · trên thẻ (đọc mục `monitor` của report) | bộ nền 0,0 · S4 mốc base 0,1854 · S4 mốc after 0,2435 → `6 monitor ✅` sáng đèn (`R-S4-after-20261118-163724-8d779e`) |
 
 ---
 
