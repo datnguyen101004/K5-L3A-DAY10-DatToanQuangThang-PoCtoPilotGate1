@@ -415,7 +415,7 @@ bao nhiêu thời gian? (3) Có phần nào của dự án không nên làm ti�
 | | **v1** (phút 105–115, TRƯỚC khi nhận thẻ sự cố) |
 |---|---|
 | Commit ký tiêu chí (message `Sign acceptance criteria`; hash commit, tuỳ chọn) | |
-| Hash chốt cổng vòng 1 (8 ký tự lệnh `lab10.checkpoint` in ra, tuỳ chọn) | |
+| Hash chốt cổng vòng 1 (8 ký tự lệnh `lab10.checkpoint` in ra, tuỳ chọn) | `b29daf26` (chốt 2026-11-18T15:59:21; `python -m lab10.checkpoint verify` → `ok: true`) |
 | Mã lần chạy dùng làm bằng chứng | bộ nền, mốc base: ________ · bộ nền với cổng vòng 1 (prepared): ________ |
 | Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | Tại mục kinh doanh-vận hành của report prepared: ghi từng dòng `[VƯỢT]` thực tế; nếu không có dòng vượt trần, ghi rõ "Không còn dòng vượt trần nào". Không suy ra trạng thái từ tiêu chí trước khi chạy report |
 | Thẩm định vận hành của Trưởng ca CSKH | So sánh: số ca leo thang trong report prepared với công suất 1 người × 6 ca/giờ và SLA 60 phút. Nếu số ca tới/giờ × thời gian xử lý làm hàng chờ dự kiến vượt 60 phút, `NV-TUNG` thu hẹp pilot hoặc gọi thêm người; không chọn Tiếp tục |
