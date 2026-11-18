@@ -24,8 +24,8 @@ rồi mới chạy đánh giá. Khối 1 không sửa code.
 
 ### Câu 1.2 · Mục tiêu nhìn từ hai người
 
-- Chị Oanh, kế toán đối soát (không dùng trợ lý, nhưng phải khớp sổ với hãng và shop mỗi tuần): …
-- Chị Hạnh, trưởng ca CSKH (phải duyệt những ca trợ lý chuyển sang): …
+- Chị Oanh, kế toán đối soát (không dùng trợ lý, nhưng phải khớp sổ với hãng và shop mỗi tuần): Mỗi tuần, 100% lệnh hoàn tiền và phạt hãng do trợ lý tạo ra phải khớp với chứng từ hoàn tiền, chứng từ giao dịch của shop và tracking của hãng; số tiền hoàn sai, lỗi ghi oan cho hãng và lộ dữ liệu phải là 0 để không phát sinh lệch dòng tiền hoặc tranh chấp bồi thường.
+- Chị Hạnh, trưởng ca CSKH (phải duyệt những ca trợ lý chuyển sang): Duy trì tỉ lệ leo thang dưới 25% (mỗi ca có tối đa 1 người duyệt xử lý 6 ca/giờ) và đảm bảo mỗi ca leo thang được nhận xử lý trong tối đa 60 phút; cảnh báo khi hàng chờ chạm ngưỡng vàng và chuyển sang thu hẹp hoặc dừng khi hàng chờ chạm ngưỡng đỏ.
 
 ---
 
@@ -48,12 +48,12 @@ trợ lý có đang gây thiệt hại cho bên ngoài LogiX không; không có 
 
 | | Offline, cho MỘT bước (câu 1.3) | Telemetry production (câu 1.4) |
 |---|---|---|
-| **Bước / hành vi được đo** | | |
-| **Thước đo** (một câu, có đơn vị) | | |
-| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | | |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | | |
-| **Khung thời gian / ngưỡng báo động** | (không áp dụng) | |
-| **Điểm mù** (thước đo này KHÔNG thấy gì) | | |
+| **Bước / hành vi được đo** | (Kỹ sư cổng điền offline metric) | Hành động ghi sau đề xuất của trợ lý: hoàn tiền (`issue_refund`) và ghi/phạt lỗi cho hãng (`file_carrier_fault`) |
+| **Thước đo** (một câu, có đơn vị) | | Tỉ lệ hành động tự động hoàn tiền hoặc ghi/phạt hãng bị hãng đối tác khiếu nại (Dispute Rate, đơn vị %), cùng số hãng có tranh chấp độc lập trong cùng ca |
+| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | | Portal kết nối CSKH đối tác và sổ khiếu nại hãng: mã ticket, mã hãng, loại hành động (`issue_refund`, `file_carrier_fault`), thời điểm hành động, trạng thái tranh chấp. Kết quả tranh chấp do hãng đối tác xác nhận và CSKH đối chiếu |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | | Số hành động tự động bị xác nhận tranh chấp trong ca chia cho tổng hành động tự động cùng loại trong ca, nhân 100. Ca thiếu dữ liệu phản hồi không coi là ca đạt mà được đánh dấu "không xác nhận đủ"; hai hãng hoặc nhiều hơn cùng phát sinh tranh chấp trong cùng ca được đếm riêng |
+| **Khung thời gian / ngưỡng báo động** | (không áp dụng) | Theo ca 8 giờ và tổng hợp cuối ngày; báo động vàng khi dispute rate vượt 0,5%; báo động đỏ khi dispute rate vượt 1% hoặc có từ 2 hãng khiếu nại cùng lúc |
+| **Điểm mù** (thước đo này KHÔNG thấy gì) | | Không phát hiện ngay thiệt hại do phản hồi tranh chấp có độ trễ 24–48 giờ; không đo được tranh chấp khách hàng/chủ shop chưa gửi tới hãng hoặc lỗi chưa được ghi nhận trong portal |
 
 **Ví dụ mẫu (bước "chọn độ trễ" của agent, đừng chép):**
 Thước đo: tỉ lệ lần chạy mà độ trễ agent dùng để tính tiền khác độ trễ theo tracking DB. Dữ liệu: sự kiện `proposal.delay_days_used`
@@ -105,22 +105,23 @@ Giải thích một câu: …
 
 Đây không phải ngưỡng chất lượng. Viết hai câu trên phiếu này thôi, không chép vào `acceptance_criteria.json`.
 
-- Một đầu ra hoặc hành động bị cấm (ví dụ không bao giờ hoàn quá X đồng): ____
-- Ngưỡng chuyển cho người duyệt: ____
+- Một đầu ra hoặc hành động bị cấm (ví dụ không bao giờ hoàn quá X đồng): Trợ lý không được tự hoàn vượt ngân sách Finance còn lại trong ngày, không được ghi lỗi hãng khi thiếu nguyên nhân ghi nhận trong tracking, không được gửi `phone`, `name` hoặc `street` sang hãng và không được tự duyệt khoản ngoại lệ đã có quy định chuyển người.
+- Ngưỡng chuyển cho người duyệt: Chuyển cho `NV-HANH` khi số tiền đề xuất làm tổng hoàn tự động trong ngày vượt trần, người dùng khai số ngày trễ khác tracking, thiếu bằng chứng nguyên nhân lỗi hãng, ticket nằm ngoài phạm vi pilot hoặc hàng chờ vượt 30 phút.
 
 #### Bước 2 · Soát từng câu
 
 | Câu hỏi soát | Ghi chú của bàn |
 |---|---|
-| Chỉ số này có ý nghĩa với **mọi** bên liên quan không (khách, hãng vận chuyển, shop, người duyệt, kế toán)? | |
-| Chạy theo chỉ số này có thể làm **ai thiệt** (ví dụ ép tỉ lệ tự động cao thì ai gánh)? | |
-| Đây có phải nghĩa của "thành công" ở **ngày 1** của pilot không? | |
-| Còn ở **ngày thứ 1.000** (12 depot, chính sách đã đổi vài lần)? Ngưỡng nào sẽ phải viết lại? | |
+| Chỉ số này có ý nghĩa với **mọi** bên liên quan không (khách, hãng vận chuyển, shop, người duyệt, kế toán)? | Có. Khách quan tâm nhận đúng tiền và trả lời đúng hạn; shop/chính hãng quan tâm số hoàn và ghi lỗi; kế toán cần sổ khớp; người duyệt cần tải và SLA khả thi; pháp lý cần PII an toàn |
+| Chạy theo chỉ số này có thể làm **ai thiệt** (ví dụ ép tỉ lệ tự động cao thì ai gánh)? | Ép tỉ lệ tự động cao có thể làm hàng chờ người duyệt tăng, nhân viên mệt; ngược lại thu hẹp quá sâu có thể làm khách chờ lâu. Hoàn sai làm shop/khách mất tiền hoặc hãng bị ghi oan; lộ PII làm khách chịu rủi ro pháp lý |
+| Đây có phải nghĩa của "thành công" ở **ngày 1** của pilot không? | Ngày 1: không phát sinh hoàn sai, ghi oan hay PII; hàng chờ vẫn dưới 60 phút; mỗi ca có người duyệt theo công suất 6 ca/giờ và toàn bộ thao tác ghi có audit trail |
+| Còn ở **ngày thứ 1.000** (12 depot, chính sách đã đổi vài lần)? Ngưỡng nào sẽ phải viết lại? | Ngày 1.000: cần rà lại công suất theo số depot/tải thực tế, trần hoàn theo mức doanh thu, SLA theo mùa sale và danh sách trường PII theo chính sách; thời gian chờ 60 phút, công suất 6 ca/giờ/người và danh sách PII nên được xem lại định kỳ |
 
 #### Bước 3 · Chốt và hẹn ngày xem lại
 
 - Bản cuối của từng câu → chép **ngưỡng** vào `required` / `nice_to_have` / `business_ops`, chép **hành động** vào `decision_rule`
   (bốn dòng: Tiếp tục, Thu hẹp, Cải tiến thêm, Dừng) và `stop_condition`. Các khoá này nằm ngay trong `config/acceptance_criteria.json`.
+- Đề xuất điều kiện dừng cho vai Vận hành và Pháp lý: dừng cổng hoàn khi phát sinh hoàn sai vượt ngưỡng; dừng ghi lỗi hãng khi có ít nhất một lỗi ghi oan đã xác nhận; dừng/thu hẹp pilot khi hàng chờ người duyệt vượt 60 phút; dừng gửi dữ liệu khi phát hiện PII bị gửi ra ngoài trường cho phép.
 - Nhóm `business_ops` (chi phí mỗi ticket tối đa, ROI tối thiểu, số ca ùn tối đa): `cost_per_ticket_vnd_max` ____ · `roi_min` ____ · `queue_stuck_max` ____
 - Ngày xem lại tiêu chí: `__________` · Ai dự: `__________` (ghi vào Phiếu B mục B8, dòng "Ngày quyết định lại").
 
